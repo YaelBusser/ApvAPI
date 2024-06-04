@@ -59,7 +59,7 @@ app.post('/restart', (req, res) => {
         console.log('pull_request event detected!');
 
         const apiUrl = config.apiUrl;
-        const apiToken = config.serverTokene;
+        const apiToken = config.serverToken;
         const headers = {
             headers: {
                 'Authorization': apiToken,
