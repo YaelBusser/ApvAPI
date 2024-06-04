@@ -66,7 +66,7 @@ function verifySignature(secret, header, payload) {
     if (!sigHex) {
         return false;
     }
-
+    // TEST PR
     const hmac = crypto.createHmac('sha256', secret);
     hmac.update(Buffer.from(payload)); // Convert payload to buffer
 
