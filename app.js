@@ -68,7 +68,7 @@ app.post('/restart', (req, res) => {
             }
         };
 
-        // Redémarrer le serveur avec le signal 'restart'
+        // Redémarrer le serveur avec le signal 'restart'e
         axios.post(apiUrl, { 'signal': 'restart' }, headers)
             .then(response => {
                 console.log('Server restarted');
