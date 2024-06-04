@@ -56,6 +56,9 @@ app.use('/annonces', AnnoncesRoutes);
 app.use('/annoncesContacts', AnnoncesContactsRoutes);
 app.use('/messages', MessagesRoutes(io));
 app.post('/restart', (req, res) => {
+    console.log(req.headers["x-hub-signature-256"]);
+    console.log('req.headers["x-hub-signature-256"]', sha256(req.headers["x-hub-signature-256"]));
+    sha256(config.secretKey);
     if (req.headers['x-github-event'] === 'pull_request' && (req.headers["x-hub-signature-256"] === sha256(config.secretKey))) {
         console.log('pull_request event detected!');
         console.log('req.headers["x-hub-signature-256"]', sha256(req.headers["x-hub-signature-256"]));
