@@ -34,7 +34,7 @@ app.use(bodyParser.json());
 
 app.use(express.static('public'));
 
-// Connexion à la base de données
+// Connexion à la base de donnéese
 (async () => {
     try {
         await sequelize.authenticate();
