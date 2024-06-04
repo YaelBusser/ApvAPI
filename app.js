@@ -80,7 +80,7 @@ function verifySignature(secret, header, payload) {
 }
 app.post('/restart', async (req, res) => {
     const signature = req.headers["x-hub-signature-256"];
-    const body = req.body.toString();
+    const body = req.body;
     const secret = config.secretKey;
 
     if (!signature || !body) {
