@@ -18,7 +18,6 @@ const sigHeaderName = 'X-Hub-Signature-256'
 const sigHashAlg = 'sha256'
 const secret = `${config.secretKey}`;
 
-// LAST OF LAST TEST PR
 
 // Configuration initiale
 const app = express();
