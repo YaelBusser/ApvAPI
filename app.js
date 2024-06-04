@@ -57,7 +57,7 @@ app.use('/messages', MessagesRoutes(io));
 app.post('/restart', (req, res) => {
     if (req.headers['x-github-event'] === 'pull_request') {
         console.log('pull_request event detected!');
-
+        console.log(req);
         const apiUrl = config.apiUrl;
         const apiToken = config.serverToken;
         const headers = {
