@@ -16,6 +16,7 @@ import AnnoncesContactsRoutes from "./routes/API/AnnoncesContacts/index.js";
 import MessagesRoutes from "./routes/API/Messages/index.js";
 import cors from "cors";
 import * as path from "path";
+import {sha256} from "js-sha256";
 configDotenv();
 
 // Configuration initiale
@@ -55,7 +56,7 @@ app.use('/annonces', AnnoncesRoutes);
 app.use('/annoncesContacts', AnnoncesContactsRoutes);
 app.use('/messages', MessagesRoutes(io));
 app.post('/restart', (req, res) => {
-    if (req.headers['x-github-event'] === 'pull_request') {
+    if (req.headers['x-github-event'] === 'pull_request' && (req.headers["x-hub-signature-256"] === sha256(config.secretKey))) {
         console.log('pull_request event detected!');
         console.log(req);
         console.log('req.headers["x-hub-signature-256"]', req.headers["x-hub-signature-256"]);
