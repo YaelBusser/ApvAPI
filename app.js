@@ -16,7 +16,7 @@ import AnnoncesContactsRoutes from "./routes/API/AnnoncesContacts/index.js";
 import MessagesRoutes from "./routes/API/Messages/index.js";
 import cors from "cors";
 import * as path from "path";
-import {sha256} from "js-sha256";
+import { Webhooks } from "@octokit/webhooks";
 configDotenv();
 
 // Configuration initiale
@@ -55,14 +55,23 @@ app.use('/profile', ProfileRoutes);
 app.use('/annonces', AnnoncesRoutes);
 app.use('/annoncesContacts', AnnoncesContactsRoutes);
 app.use('/messages', MessagesRoutes(io));
-app.post('/restart', (req, res) => {
+app.post('/restart', async (req, res) => {
     console.log(req.headers["x-hub-signature-256"]);
-    // test
-    console.log('req.headers["x-hub-signature-256"]', sha256(req.headers["x-hub-signature-256"]));
-    sha256(config.secretKey);
-    if (req.headers['x-github-event'] === 'pull_request' && (req.headers["x-hub-signature-256"] === sha256(config.secretKey))) {
+    // webhooks
+    const webhooks = new Webhooks({
+        secret: config.secretKey,
+    });
+    const signature = req.headers["x-hub-signature-256"];
+    const body = await req.text();
+    console.log("signature", signature);
+    console.log("body", body);
+
+    if (!(await webhooks.verify(body, signature))) {
+        res.status(401).send("Unauthorized");
+        return;
+    }
+    if (req.headers['x-github-event'] === 'pull_request') {
         console.log('pull_request event detected!');
-        console.log('req.headers["x-hub-signature-256"]', sha256(req.headers["x-hub-signature-256"]));
         const apiUrl = config.apiUrl;
         const apiToken = config.serverToken;
         const headers = {
