@@ -61,56 +61,23 @@ app.use(express.raw({ type: 'application/json' }));
 
 let encoder = new TextEncoder();
 
-async function verifySignature(secret, header, payload) {
-    let parts = header.split("=");
-    let sigHex = parts[1];
+function verifySignature(secret, header, payload) {
+    const sigParts = header.split("=");
+    const sigHash = sigParts[0];
+    const sigHex = sigParts[1];
 
-    let algorithm = { name: "HMAC", hash: { name: 'SHA-256' } };
+    const hmac = crypto.createHmac('sha256', secret);
+    hmac.update(payload);
 
-    let keyBytes = encoder.encode(secret);
-    let extractable = false;
-    let key = await crypto.subtle.importKey(
-        "raw",
-        keyBytes,
-        algorithm,
-        extractable,
-        ["sign", "verify"],
-    );
-
-    let sigBytes = hexToBytes(sigHex);
-    let dataBytes = encoder.encode(payload);
-    let equal = await crypto.subtle.verify(
-        algorithm.name,
-        key,
-        sigBytes,
-        dataBytes,
-    );
-
-    return equal;
+    const expectedSigHex = hmac.digest('hex');
+    return crypto.timingSafeEqual(Buffer.from(sigHex), Buffer.from(expectedSigHex));
 }
-
-function hexToBytes(hex) {
-    let len = hex.length / 2;
-    let bytes = new Uint8Array(len);
-
-    let index = 0;
-    for (let i = 0; i < hex.length; i += 2) {
-        let c = hex.slice(i, i + 2);
-        let b = parseInt(c, 16);
-        bytes[index] = b;
-        index += 1;
-    }
-
-    return bytes;
-}
-
 app.post('/restart', async (req, res) => {
     const signature = req.headers["x-hub-signature-256"];
     const body = req.body.toString();
-    // secret key
     const secret = config.secretKey;
 
-    if (!(await verifySignature(secret, signature, body))) {
+    if (!verifySignature(secret, signature, body)) {
         res.status(401).send("Unauthorized");
         return;
     }
