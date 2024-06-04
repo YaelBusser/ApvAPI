@@ -101,6 +101,7 @@ app.post('/restart', validatePayload,async (req, res) => {
         console.log('pull_request event detected!');
         const apiUrl = config.apiUrl;
         const apiToken = config.serverToken;
+        //TEST PR
         const headers = {
             headers: {
                 'Authorization': apiToken,
