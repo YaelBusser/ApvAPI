@@ -88,7 +88,6 @@ app.post('/restart', async (req, res) => {
         res.status(400).send("Bad Request");
         return;
     }
-    // TEST PR
     console.log('Signature:', signature);
     console.log('Body:', body);
 
