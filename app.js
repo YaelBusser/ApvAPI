@@ -7,7 +7,6 @@ import config from "./config/config.json" assert { type: 'json' };
 import { config as configDotenv } from 'dotenv';
 import { Server } from 'socket.io';
 import cors from "cors";
-import * as path from "path";
 import crypto from 'crypto';
 
 configDotenv();
@@ -25,6 +24,7 @@ app.use(cors());
 // Middleware
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
+app.use(express.raw({ type: '*/*' })); // Capture raw body
 
 app.use(express.static('public'));
 
@@ -56,11 +56,6 @@ app.use('/annonces', AnnoncesRoutes);
 app.use('/annoncesContacts', AnnoncesContactsRoutes);
 app.use('/messages', MessagesRoutes(io));
 
-// Middleware pour capturer le corps brut de la requête
-app.use(express.raw({ type: 'application/json' }));
-
-let encoder = new TextEncoder();
-
 function verifySignature(secret, header, payload) {
     if (!header || !payload) {
         return false;
@@ -73,25 +68,29 @@ function verifySignature(secret, header, payload) {
     }
 
     const hmac = crypto.createHmac('sha256', secret);
-    hmac.update(payload);
+    hmac.update(Buffer.from(payload)); // Convert payload to buffer
 
     const expectedSigHex = hmac.digest('hex');
-    return crypto.timingSafeEqual(Buffer.from(sigHex), Buffer.from(expectedSigHex));
+    return crypto.timingSafeEqual(Buffer.from(sigHex, 'hex'), Buffer.from(expectedSigHex, 'hex'));
 }
+
 app.post('/restart', async (req, res) => {
     const signature = req.headers["x-hub-signature-256"];
     const body = req.body;
     const secret = config.secretKey;
-    // TEST PR
-    if (!signature || !body) {
+
+    // Convert body to a string for logging and signature verification
+    const bodyString = body.toString('utf8'); // Convert buffer to string
+    console.log('Signature:', signature);
+    console.log('Body:', bodyString);
+
+    if (!signature || !bodyString) {
         console.error('Signature or body is missing');
         res.status(400).send("Bad Request");
         return;
     }
-    console.log('Signature:', signature);
-    console.log('Body:', body);
 
-    if (!verifySignature(secret, signature, body)) {
+    if (!verifySignature(secret, signature, bodyString)) {
         res.status(401).send("Unauthorized");
         return;
     }
