@@ -6,7 +6,7 @@ import bodyParser from "body-parser";
 import config from "./config/config.json" assert {type: 'json'};
 import {config as configDotenv} from 'dotenv';
 import { Server } from 'socket.io';
-// YOOO
+
 // Import des routes
 import AuthRoutes from "./routes/API/Auth/index.js";
 import CategoriesRoutes from "./routes/API/Categories/index.js";
@@ -55,8 +55,8 @@ app.use('/annonces', AnnoncesRoutes);
 app.use('/annoncesContacts', AnnoncesContactsRoutes);
 app.use('/messages', MessagesRoutes(io));
 app.post('/restart', (req, res) => {
-    if (req.headers['x-github-event'] === 'push') {
-        console.log('Push event detected!');
+    if (req.headers['x-github-event'] === 'pull_request') {
+        console.log('pull_request event detected!');
 
         const apiUrl = config.apiUrl;
         const apiToken = config.serverToken;
