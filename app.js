@@ -1,22 +1,15 @@
 import express from "express";
 import axios from "axios";
 import http from "http";
-import {Sequelize} from "sequelize";
+import { Sequelize } from "sequelize";
 import bodyParser from "body-parser";
-import config from "./config/config.json" assert {type: 'json'};
-import {config as configDotenv} from 'dotenv';
+import config from "./config/config.json" assert { type: 'json' };
+import { config as configDotenv } from 'dotenv';
 import { Server } from 'socket.io';
-
-// Import des routes
-import AuthRoutes from "./routes/API/Auth/index.js";
-import CategoriesRoutes from "./routes/API/Categories/index.js";
-import ProfileRoutes from "./routes/API/Profile/index.js";
-import AnnoncesRoutes from "./routes/API/Annonces/index.js";
-import AnnoncesContactsRoutes from "./routes/API/AnnoncesContacts/index.js";
-import MessagesRoutes from "./routes/API/Messages/index.js";
 import cors from "cors";
 import * as path from "path";
-import { Webhooks } from "@octokit/webhooks";
+import crypto from 'crypto';
+
 configDotenv();
 
 // Configuration initiale
@@ -25,12 +18,12 @@ const port = config.portApp;
 const server = http.createServer(app);
 const sequelize = new Sequelize(config.production);
 const io = new Server(server);
-//test
+
 // CORS
 app.use(cors());
 
 // Middleware
-app.use(bodyParser.urlencoded({extended: true}));
+app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 
 app.use(express.static('public'));
@@ -46,34 +39,82 @@ app.use(express.static('public'));
 })();
 
 // Configuration des vues
-app.use(express.urlencoded({extended: true}));
+app.use(express.urlencoded({ extended: true }));
 
 // Routes API
+import AuthRoutes from "./routes/API/Auth/index.js";
+import CategoriesRoutes from "./routes/API/Categories/index.js";
+import ProfileRoutes from "./routes/API/Profile/index.js";
+import AnnoncesRoutes from "./routes/API/Annonces/index.js";
+import AnnoncesContactsRoutes from "./routes/API/AnnoncesContacts/index.js";
+import MessagesRoutes from "./routes/API/Messages/index.js";
+
 app.use('/auth', AuthRoutes);
 app.use('/categories', CategoriesRoutes);
 app.use('/profile', ProfileRoutes);
 app.use('/annonces', AnnoncesRoutes);
 app.use('/annoncesContacts', AnnoncesContactsRoutes);
 app.use('/messages', MessagesRoutes(io));
+
+// Middleware pour capturer le corps brut de la requête
+app.use(express.raw({ type: 'application/json' }));
+
+let encoder = new TextEncoder();
+
+async function verifySignature(secret, header, payload) {
+    let parts = header.split("=");
+    let sigHex = parts[1];
+
+    let algorithm = { name: "HMAC", hash: { name: 'SHA-256' } };
+
+    let keyBytes = encoder.encode(secret);
+    let extractable = false;
+    let key = await crypto.subtle.importKey(
+        "raw",
+        keyBytes,
+        algorithm,
+        extractable,
+        ["sign", "verify"],
+    );
+
+    let sigBytes = hexToBytes(sigHex);
+    let dataBytes = encoder.encode(payload);
+    let equal = await crypto.subtle.verify(
+        algorithm.name,
+        key,
+        sigBytes,
+        dataBytes,
+    );
+
+    return equal;
+}
+
+function hexToBytes(hex) {
+    let len = hex.length / 2;
+    let bytes = new Uint8Array(len);
+
+    let index = 0;
+    for (let i = 0; i < hex.length; i += 2) {
+        let c = hex.slice(i, i + 2);
+        let b = parseInt(c, 16);
+        bytes[index] = b;
+        index += 1;
+    }
+
+    return bytes;
+}
+
 app.post('/restart', async (req, res) => {
-    const webhooks = new Webhooks({
-        secret: config.secretKey,
-    });
     const signature = req.headers["x-hub-signature-256"];
     const body = req.body.toString();
 
-    console.log("signaturee", signature);
-    console.log("body", body);
+    const secret = config.secretKey;
 
-    if (!(await webhooks.verify(body, signature))) {
+    if (!(await verifySignature(secret, signature, body))) {
         res.status(401).send("Unauthorized");
         return;
     }
 
-    if (!(await webhooks.verify(body, signature))) {
-        res.status(401).send("Unauthorized");
-        return;
-    }
     if (req.headers['x-github-event'] === 'pull_request') {
         console.log('pull_request event detected!');
         const apiUrl = config.apiUrl;
@@ -89,7 +130,7 @@ app.post('/restart', async (req, res) => {
         axios.post(apiUrl, { 'signal': 'restart' }, headers)
             .then(response => {
                 console.log('Server restarted');
-                res.status(200).send('Webhook  received and server restarted');
+                res.status(200).send('Webhook received and server restarted');
             })
             .catch(error => {
                 console.error('Error restarting the server:', error);
@@ -134,7 +175,6 @@ io.on('connection', (socket) => {
         console.log('User disconnected');
     });
 });
-
 
 // Démarrage du serveur
 server.listen(port, () => console.log(`Server running on http://localhost:${port}`));
