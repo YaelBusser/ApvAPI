@@ -9,14 +9,14 @@ import { Server } from 'socket.io';
 import cors from "cors";
 import * as path from "path";
 import crypto from 'crypto';
-const secret = config.secretKey;
 
 // For these headers, a sigHashAlg of sha1 must be used instead of sha256
 // GitHub: X-Hub-Signature
 // Gogs:   X-Gogs-Signature
+configDotenv();
 const sigHeaderName = 'X-Hub-Signature-256'
 const sigHashAlg = 'sha256'
-configDotenv();
+const secret = `${config.secretKey}`;
 
 // Configuration initiale
 const app = express();
