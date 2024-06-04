@@ -9,7 +9,13 @@ import { Server } from 'socket.io';
 import cors from "cors";
 import * as path from "path";
 import crypto from 'crypto';
+const secret = config.secretKey;
 
+// For these headers, a sigHashAlg of sha1 must be used instead of sha256
+// GitHub: X-Hub-Signature
+// Gogs:   X-Gogs-Signature
+const sigHeaderName = 'X-Hub-Signature-256'
+const sigHashAlg = 'sha256'
 configDotenv();
 
 // Configuration initiale
@@ -19,13 +25,20 @@ const server = http.createServer(app);
 const sequelize = new Sequelize(config.production);
 const io = new Server(server);
 
+
 // CORS
 app.use(cors());
 
 // Middleware
 app.use(bodyParser.urlencoded({ extended: true }));
-app.use(bodyParser.json());
-
+// bodyparser
+app.use(bodyParser.json({
+    verify: (req, res, buf, encoding) => {
+        if (buf && buf.length) {
+            req.rawBody = buf.toString(encoding || 'utf8');
+        }
+    },
+}))
 app.use(express.static('public'));
 
 // Connexion à la base de données
@@ -56,47 +69,26 @@ app.use('/annonces', AnnoncesRoutes);
 app.use('/annoncesContacts', AnnoncesContactsRoutes);
 app.use('/messages', MessagesRoutes(io));
 
-// Middleware pour capturer le corps brut de la requête
-app.use(express.raw({ type: 'application/json' }));
-app.use(
-    bodyParser.json({
-        verify: (req, res, buf, encoding) => {
-            if (buf && buf.length) {
-                req.rawBody = buf.toString(encoding || "utf8");
-            }
-        },
-    }),
-);
-const sigHeaderName = "X-Signature-SHA256";
-const sigHashAlg = "sha256";
-const sigPrefix = ""; //set this to your signature prefix if any
-const secret = `${config.secretKey}`;
-
-//Validate payload
-function validatePayload(req, res, next) {
-    if (req.get(sigHeaderName)) {
-        //Extract Signature header
-        const sig = Buffer.from(req.get(sigHeaderName) || "", "utf8");
-
-        //Calculate HMAC
-        const hmac = crypto.createHmac(sigHashAlg, secret);
-        const digest = Buffer.from(
-            sigPrefix + hmac.update(req.rawBody).digest("hex"),
-            "utf8",
-        );
-
-        //Compare HMACs
-        if (sig.length !== digest.length || !crypto.timingSafeEqual(digest, sig)) {
-            return res.status(401).send({
-                message: `Request body digest (${digest}) did not match ${sigHeaderName} (${sig})`,
-            });
-        }
+// Middleware
+function verifyPostData(req, res, next) {
+    if (!req.rawBody) {
+        return next('Request body empty')
     }
 
-    return next();
-}
-app.post('/restart', validatePayload,async (req, res) => {
+    const sig = Buffer.from(req.get(sigHeaderName) || '', 'utf8')
+    const hmac = crypto.createHmac(sigHashAlg, secret)
+    const digest = Buffer.from(sigHashAlg + '=' + hmac.update(req.rawBody).digest('hex'), 'utf8')
+    if (sig.length !== digest.length || !crypto.timingSafeEqual(digest, sig)) {
+        return next(`Request body digest (${digest}) did not match ${sigHeaderName} (${sig})`)
+    }
 
+    return next()
+}
+
+
+
+//Validate payload
+app.post('/restart',verifyPostData, async (req, res) => {
     if (req.headers['x-github-event'] === 'pull_request') {
         console.log('pull_request event detected!');
         const apiUrl = config.apiUrl;
