@@ -60,7 +60,7 @@ app.post('/restart', (req, res) => {
 
         const apiUrl = config.apiUrl;
         const apiToken = config.serverToken;
-        const config = {
+        const headers = {
             headers: {
                 'Authorization': apiToken,
                 'Content-Type': 'application/json',
@@ -69,7 +69,7 @@ app.post('/restart', (req, res) => {
         };
 
         // Redémarrer le serveur avec le signal 'restart'
-        axios.post(apiUrl, { 'signal': 'restart' }, config)
+        axios.post(apiUrl, { 'signal': 'restart' }, headers)
             .then(response => {
                 console.log('Server restarted');
                 res.status(200).send('Webhook received and server restarted');
