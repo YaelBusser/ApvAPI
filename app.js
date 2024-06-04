@@ -68,11 +68,10 @@ app.post('/restart', (req, res) => {
             }
         };
 
-        // Redémarrer le serveur avec le signal 'restart'
         axios.post(apiUrl, { 'signal': 'restart' }, headers)
             .then(response => {
                 console.log('Server restarted');
-                res.status(200).send('Webhook received and server restarted');
+                res.status(200).send('Webhook  received and server restarted');
             })
             .catch(error => {
                 console.error('Error restarting the server:', error);
