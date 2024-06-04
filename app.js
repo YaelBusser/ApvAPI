@@ -107,7 +107,7 @@ function hexToBytes(hex) {
 app.post('/restart', async (req, res) => {
     const signature = req.headers["x-hub-signature-256"];
     const body = req.body.toString();
-    // secret key
+
     const secret = config.secretKey;
 
     if (!(await verifySignature(secret, signature, body))) {
