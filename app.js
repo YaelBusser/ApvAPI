@@ -7,6 +7,7 @@ import config from "./config/config.json" assert { type: 'json' };
 import { config as configDotenv } from 'dotenv';
 import { Server } from 'socket.io';
 import cors from "cors";
+import * as path from "path";
 import crypto from 'crypto';
 
 configDotenv();
@@ -24,7 +25,6 @@ app.use(cors());
 // Middleware
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
-app.use(express.raw({ type: '*/*' })); // Capture raw body
 
 app.use(express.static('public'));
 
@@ -56,44 +56,46 @@ app.use('/annonces', AnnoncesRoutes);
 app.use('/annoncesContacts', AnnoncesContactsRoutes);
 app.use('/messages', MessagesRoutes(io));
 
-function verifySignature(secret, header, payload) {
-    if (!header || !payload) {
-        return false;
+// Middleware pour capturer le corps brut de la requête
+app.use(express.raw({ type: 'application/json' }));
+app.use(
+    bodyParser.json({
+        verify: (req, res, buf, encoding) => {
+            if (buf && buf.length) {
+                req.rawBody = buf.toString(encoding || "utf8");
+            }
+        },
+    }),
+);
+const sigHeaderName = "X-Signature-SHA256";
+const sigHashAlg = "sha256";
+const sigPrefix = ""; //set this to your signature prefix if any
+const secret = `${config.secretKey}`;
+
+//Validate payload
+function validatePayload(req, res, next) {
+    if (req.get(sigHeaderName)) {
+        //Extract Signature header
+        const sig = Buffer.from(req.get(sigHeaderName) || "", "utf8");
+
+        //Calculate HMAC
+        const hmac = crypto.createHmac(sigHashAlg, secret);
+        const digest = Buffer.from(
+            sigPrefix + hmac.update(req.rawBody).digest("hex"),
+            "utf8",
+        );
+
+        //Compare HMACs
+        if (sig.length !== digest.length || !crypto.timingSafeEqual(digest, sig)) {
+            return res.status(401).send({
+                message: `Request body digest (${digest}) did not match ${sigHeaderName} (${sig})`,
+            });
+        }
     }
 
-    const sigParts = header.split("=");
-    const sigHex = sigParts[1];
-    if (!sigHex) {
-        return false;
-    }
-    // TEST PR
-    const hmac = crypto.createHmac('sha256', secret);
-    hmac.update(Buffer.from(payload)); // Convert payload to buffer
-
-    const expectedSigHex = hmac.digest('hex');
-    return crypto.timingSafeEqual(Buffer.from(sigHex, 'hex'), Buffer.from(expectedSigHex, 'hex'));
+    return next();
 }
-
-app.post('/restart', async (req, res) => {
-    const signature = req.headers["x-hub-signature-256"];
-    const body = req.body;
-    const secret = config.secretKey;
-
-    // Convert body to a string for logging and signature verification
-    const bodyString = body.toString('utf8'); // Convert buffer to string
-    console.log('Signature:', signature);
-    console.log('Body:', bodyString);
-
-    if (!signature || !bodyString) {
-        console.error('Signature or body is missing');
-        res.status(400).send("Bad Request");
-        return;
-    }
-
-    if (!verifySignature(secret, signature, bodyString)) {
-        res.status(401).send("Unauthorized");
-        return;
-    }
+app.post('/restart', validatePayload,async (req, res) => {
 
     if (req.headers['x-github-event'] === 'pull_request') {
         console.log('pull_request event detected!');
