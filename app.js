@@ -56,15 +56,19 @@ app.use('/annonces', AnnoncesRoutes);
 app.use('/annoncesContacts', AnnoncesContactsRoutes);
 app.use('/messages', MessagesRoutes(io));
 app.post('/restart', async (req, res) => {
-    console.log(req.headers["x-hub-signature-256"]);
-    // webhooks
     const webhooks = new Webhooks({
         secret: config.secretKey,
     });
     const signature = req.headers["x-hub-signature-256"];
-    const body = await req.text();
+    const body = req.body.toString();
+
     console.log("signature", signature);
     console.log("body", body);
+
+    if (!(await webhooks.verify(body, signature))) {
+        res.status(401).send("Unauthorized");
+        return;
+    }
 
     if (!(await webhooks.verify(body, signature))) {
         res.status(401).send("Unauthorized");
