@@ -62,7 +62,7 @@ app.post('/restart', async (req, res) => {
     const signature = req.headers["x-hub-signature-256"];
     const body = req.body.toString();
 
-    console.log("signature", signature);
+    console.log("signaturee", signature);
     console.log("body", body);
 
     if (!(await webhooks.verify(body, signature))) {
