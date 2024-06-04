@@ -62,9 +62,15 @@ app.use(express.raw({ type: 'application/json' }));
 let encoder = new TextEncoder();
 
 function verifySignature(secret, header, payload) {
+    if (!header || !payload) {
+        return false;
+    }
+
     const sigParts = header.split("=");
-    const sigHash = sigParts[0];
     const sigHex = sigParts[1];
+    if (!sigHex) {
+        return false;
+    }
 
     const hmac = crypto.createHmac('sha256', secret);
     hmac.update(payload);
@@ -76,6 +82,15 @@ app.post('/restart', async (req, res) => {
     const signature = req.headers["x-hub-signature-256"];
     const body = req.body.toString();
     const secret = config.secretKey;
+
+    if (!signature || !body) {
+        console.error('Signature or body is missing');
+        res.status(400).send("Bad Request");
+        return;
+    }
+
+    console.log('Signature:', signature);
+    console.log('Body:', body);
 
     if (!verifySignature(secret, signature, body)) {
         res.status(401).send("Unauthorized");
