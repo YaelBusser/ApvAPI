@@ -45,8 +45,8 @@ router.post('/login', async (req, res) => {
         if (!isPasswordValid) {
             return res.status(401).json({message: "Identifiants invalides."});
         }
-
-        const token = jwt.sign({id: user.id, email: user.email}, config.JWT_SECRET, {expiresIn: '7d'});
+        console.log(config.JWT_SECRET);
+        const token = jwt.sign({id: user.id, email: user.email}, `${config.JWT_SECRET}`, {expiresIn: '7d'});
 
         await Users.update({ token: token }, { where: { id: user.id } });
 
