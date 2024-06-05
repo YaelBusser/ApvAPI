@@ -2,6 +2,8 @@ import express from "express";
 
 const router = express.Router();
 
+import config from "../../../config/config.json";
+
 import multer from "multer";
 import {fileURLToPath} from 'url';
 import {dirname, join} from 'path';
@@ -57,7 +59,7 @@ router.get('/', async (req, res) => {
             return res.status(401).json({message: "Token d'authentification manquant."});
         }
 
-        jwt.verify(token, process.env.JWT_SECRET, async (err, decoded) => {
+        jwt.verify(token, config.JWT_SECRET, async (err, decoded) => {
             if (err) {
                 return res.status(401).json({message: "Token d'authentification invalide."});
             }
@@ -84,7 +86,7 @@ const authenticateToken = (req, res, next) => {
         return res.status(401).json({ message: 'Token d\'authentification manquant.' });
     }
 
-    jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+    jwt.verify(token, config.JWT_SECRET, (err, decoded) => {
         if (err) {
             return res.status(401).json({ message: 'Token d\'authentification invalide.' });
         }
