@@ -85,7 +85,7 @@ function verifyPostData(req, res, next) {
 
 
 
-//Validate payload
+// Utilisation du middleware pour Webhooks
 app.post('/restart',verifyPostData, async (req, res) => {
     if (req.headers['x-github-event'] === 'pull_request') {
         console.log('pull_request event detected!');

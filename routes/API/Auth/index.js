@@ -47,8 +47,6 @@ router.post('/login', async (req, res) => {
 
         const token = jwt.sign({id: user.id, email: user.email}, process.env.JWT_SECRET, {expiresIn: '7d'});
 
-        await Users.update({ token: token }, { where: { id: user.id } });
-
         return res.json({message: "Connexion réussie.", token: token});
     } catch (error) {
         console.log(error);
