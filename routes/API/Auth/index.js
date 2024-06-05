@@ -2,6 +2,7 @@ import express from "express";
 import bcrypt from "bcrypt";
 import Users from "../../../models/users.js";
 import jwt from "jsonwebtoken";
+import config from "../../../config/config.json" assert { type: 'json' };
 
 const router = express.Router();
 
@@ -44,8 +45,8 @@ router.post('/login', async (req, res) => {
         if (!isPasswordValid) {
             return res.status(401).json({message: "Identifiants invalides."});
         }
-
-        const token = jwt.sign({id: user.id, email: user.email}, process.env.JWT_SECRET, {expiresIn: '7d'});
+        console.log("config.JWT_SECRET", config.JWT_SECRET);
+        const token = jwt.sign({id: user.id, email: user.email}, config.JWT_SECRET, {expiresIn: '365d'});
 
         return res.json({message: "Connexion réussie.", token: token});
     } catch (error) {
