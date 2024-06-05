@@ -2,7 +2,7 @@ import express from "express";
 
 const router = express.Router();
 
-import config from "../../../config/config.json";
+import config from "../../../config/config.json" assert { type: 'json' };
 
 import multer from "multer";
 import {fileURLToPath} from 'url';
