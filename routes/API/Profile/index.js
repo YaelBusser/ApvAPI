@@ -36,7 +36,7 @@ router.post('/edit/avatar', uploadAvatar.single('avatar'), async (req, res) => {
             return res.status(404).json({message: "Utilisateur non trouvé."});
         }
 
-        if (user.avatar) {
+        if (user.avatar && user.avatar !== "users/avatar/defaultProfile.png") {
             const oldImagePath = join(__dirnameAvatar, '../../../public/', user.avatar);
             if (fs.existsSync(oldImagePath)) {
                 fs.unlinkSync(oldImagePath);
