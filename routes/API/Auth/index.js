@@ -2,7 +2,7 @@ import express from "express";
 import bcrypt from "bcrypt";
 import Users from "../../../models/users.js";
 import jwt from "jsonwebtoken";
-import config from "../../../config/config.json";
+import config from "../../../config/config.json" assert { type: 'json' };
 
 const router = express.Router();
 
