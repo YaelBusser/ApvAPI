@@ -9,7 +9,7 @@ import { Server } from 'socket.io';
 import cors from "cors";
 import * as path from "path";
 import crypto from 'crypto';
-// TEST PR TO RESTART SERVER
+
 configDotenv();
 const sigHeaderName = 'X-Hub-Signature-256'
 const sigHashAlg = 'sha256'
